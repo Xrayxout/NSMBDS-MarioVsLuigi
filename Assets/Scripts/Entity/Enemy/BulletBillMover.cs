@@ -6,6 +6,7 @@ using NSMB.Utils;
 public class BulletBillMover : KillableEntity {
 
     public float speed, playerSearchRadius = 4, despawnDistance = 8;
+    public Transform BulletBillModel;
     private Vector2 searchVector;
 
     public new void Start() {
@@ -25,6 +26,12 @@ public class BulletBillMover : KillableEntity {
 
         ps.Play();
         sRenderer.flipX = !left;
+        if (!left) 
+        { 
+            BulletBillModel.transform.localScale = new Vector3(BulletBillModel.transform.localScale.x, BulletBillModel.transform.localScale.y, BulletBillModel.transform.localScale.z * -1);
+            BulletBillModel.transform.localPosition = new Vector3(BulletBillModel.transform.localPosition.x * -1, BulletBillModel.transform.localPosition.y, BulletBillModel.transform.localPosition.z);
+
+        }
     }
 
     public new void FixedUpdate() {

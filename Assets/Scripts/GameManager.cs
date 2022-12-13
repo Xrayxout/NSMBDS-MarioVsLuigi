@@ -75,7 +75,7 @@ public class GameManager : MonoBehaviour, IOnEventCallback, IInRoomCallbacks, IC
     private ParticleSystem brickBreak;
 
     public HashSet<Player> nonSpectatingPlayers;
-
+    public float respawnTime;
     // EVENT CALLBACK
     public void SendAndExecuteEvent(Enums.NetEventIds eventId, object parameters, SendOptions sendOption, RaiseEventOptions eventOptions = null) {
         if (eventOptions == null)
@@ -181,8 +181,10 @@ public class GameManager : MonoBehaviour, IOnEventCallback, IInRoomCallbacks, IC
                 coin.GetComponent<SpriteRenderer>().enabled = true;
                 coin.GetComponent<BoxCollider2D>().enabled = true;
             }
-
-            StartCoroutine(BigStarRespawn());
+            if (starRequirement != -1)
+            {
+                StartCoroutine(BigStarRespawn());
+            }
 
             if (!PhotonNetwork.IsMasterClient)
                 return;
@@ -399,6 +401,7 @@ public class GameManager : MonoBehaviour, IOnEventCallback, IInRoomCallbacks, IC
 
     //Register callbacks & controls
     public void OnEnable() {
+        respawnTime = Time.deltaTime;
         Instance = this;
         PhotonNetwork.AddCallbackTarget(this);
         InputSystem.controls.UI.Pause.performed += OnPause;
@@ -488,7 +491,11 @@ public class GameManager : MonoBehaviour, IOnEventCallback, IInRoomCallbacks, IC
         bool spectating = GlobalController.Instance.joinedAsSpectator;
         bool gameStarting = startTimestamp - PhotonNetwork.ServerTimestamp > 0;
 
-        StartCoroutine(BigStarRespawn(false));
+        if (starRequirement != -1)
+        {
+            StartCoroutine(BigStarRespawn(false));
+        }
+
 
         if (PhotonNetwork.IsMasterClient && !PhotonNetwork.OfflineMode) {
             //clear buffered loading complete events.
@@ -641,9 +648,22 @@ public class GameManager : MonoBehaviour, IOnEventCallback, IInRoomCallbacks, IC
         }
     }
 
+
     public void Update() {
         if (gameover)
             return;
+
+        if (starRequirement == -1 && !gameover)
+        {
+            //Debug.Log("Respawn Timer: " + respawnTime);
+            respawnTime += Time.deltaTime;
+            if (respawnTime >= 30)
+            {
+                respawnTime = 0f;
+                Debug.Log("Reached 30Seconds! Resetting map!");
+                GameManager.Instance.SendAndExecuteEvent(Enums.NetEventIds.ResetTiles, null, SendOptions.SendReliable);
+            }
+        }
 
         if (endServerTime != -1) {
             float timeRemaining = (endServerTime - PhotonNetwork.ServerTimestamp) / 1000f;
@@ -773,7 +793,7 @@ public class GameManager : MonoBehaviour, IOnEventCallback, IInRoomCallbacks, IC
             if (player.lives == 1 && players.Count <= 2)
                 speedup = true;
         }
-
+        
         speedup |= players.All(pl => !pl || pl.lives == 1 || pl.lives == 0);
 
         if (mega) {

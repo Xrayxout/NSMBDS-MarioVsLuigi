@@ -30,7 +30,7 @@ public class MainMenuManager : MonoBehaviour, ILobbyCallbacks, IInRoomCallbacks,
     public TMP_Dropdown levelDropdown, characterDropdown;
     public RoomIcon selectedRoomIcon, privateJoinRoom;
     public Button joinRoomBtn, createRoomBtn, startGameBtn;
-    public Toggle ndsResolutionToggle, fullscreenToggle, livesEnabled, powerupsEnabled, timeEnabled, drawTimeupToggle, fireballToggle, vsyncToggle, privateToggle, privateToggleRoom, aspectToggle, spectateToggle, scoreboardToggle, filterToggle;
+    public Toggle ndsResolutionToggle, fullscreenToggle, starsEnabled, livesEnabled, powerupsEnabled, timeEnabled, drawTimeupToggle, fireballToggle, vsyncToggle, privateToggle, privateToggleRoom, aspectToggle, spectateToggle, scoreboardToggle, filterToggle;
     public GameObject playersContent, playersPrefab, chatContent, chatPrefab;
     public TMP_InputField nicknameField, starsText, coinsText, livesField, timeField, lobbyJoinField, chatTextField;
     public Slider musicSlider, sfxSlider, masterSlider, lobbyPlayersSlider, changePlayersSlider;
@@ -67,6 +67,7 @@ public class MainMenuManager : MonoBehaviour, ILobbyCallbacks, IInRoomCallbacks,
     Coroutine updatePingCoroutine;
 
     public ColorChooser colorManager;
+    public CharacterCustomizerPanel characterPanel;
 
     // LOBBY CALLBACKS
     public void OnJoinedLobby() {
@@ -165,13 +166,13 @@ public class MainMenuManager : MonoBehaviour, ILobbyCallbacks, IInRoomCallbacks,
             PhotonNetwork.CurrentRoom.SetCustomProperties(new() {
                 [Enums.NetRoomProperties.HostName] = newMaster.GetUniqueNickname()
             });
-            LocalChatMessage("You are the room's host! You can click on player names to control your room, or use chat commands. Do /help for more help.", Color.red);
+            LocalChatMessage("You are the room's host! You can click on player names to control your room, or use chat commands. Do /help for more help.", new Color(0.3113208f, 0.3113208f, 0.3113208f));
         }
         UpdateSettingEnableStates();
     }
     public void OnJoinedRoom() {
         Debug.Log($"[PHOTON] Joined Room ({PhotonNetwork.CurrentRoom.Name})");
-        LocalChatMessage(PhotonNetwork.LocalPlayer.GetUniqueNickname() + " joined the room", Color.red);
+        LocalChatMessage(PhotonNetwork.LocalPlayer.GetUniqueNickname() + " joined the room", new Color(0.3113208f, 0.3113208f, 0.3113208f));
         EnterRoom();
     }
     IEnumerator KickPlayer(Player player) {
@@ -836,6 +837,14 @@ public class MainMenuManager : MonoBehaviour, ILobbyCallbacks, IInRoomCallbacks,
         PhotonNetwork.CurrentRoom.SetCustomProperties(properties);
     }
 
+    public void EnableStars(Toggle toggle)
+    {
+        Hashtable properties = new() {
+            [Enums.NetRoomProperties.StarRequirement] = toggle.isOn ? int.Parse(starsText.text) : -1
+        };
+        PhotonNetwork.CurrentRoom.SetCustomProperties(properties);
+    }
+
     public void ChangeLevel(int index) {
         levelDropdown.SetValueWithoutNotify(index);
         LocalChatMessage("Map set to: " + levelDropdown.options[index].text, Color.red);
@@ -929,6 +938,7 @@ public class MainMenuManager : MonoBehaviour, ILobbyCallbacks, IInRoomCallbacks,
         foreach (Selectable s in roomSettings)
             s.interactable = PhotonNetwork.IsMasterClient;
 
+        starsText.interactable = PhotonNetwork.IsMasterClient && starsEnabled.isOn;
         livesField.interactable = PhotonNetwork.IsMasterClient && livesEnabled.isOn;
         timeField.interactable = PhotonNetwork.IsMasterClient && timeEnabled.isOn;
         drawTimeupToggle.interactable = PhotonNetwork.IsMasterClient && timeEnabled.isOn;
@@ -1132,13 +1142,13 @@ public class MainMenuManager : MonoBehaviour, ILobbyCallbacks, IInRoomCallbacks,
                 "ban" => "/ban <player name> - Ban a player from rejoining the room",
                 "host" => "/host <player name> - Make a player the host for the room",
                 "mute" => "/mute <playername> - Prevents a player from talking in chat",
-                //"debug" => "/debug - Enables debug & in-development features",
+                "debug" => "/debug - Enables debug & in-development features",
                 _ => "Available commands: /kick, /host, /mute, /ban",
             };
             LocalChatMessage(msg, Color.red);
             return;
         }
-        /*
+        
         case "debug": {
             Utils.GetCustomProperty(Enums.NetRoomProperties.Debug, out bool debugEnabled);
             if (PhotonNetwork.CurrentRoom.IsVisible) {
@@ -1156,7 +1166,7 @@ public class MainMenuManager : MonoBehaviour, ILobbyCallbacks, IInRoomCallbacks,
             });
             return;
         }
-        */
+        
         case "mute": {
             if (args.Length < 2) {
                 LocalChatMessage("Usage: /mute <player name>", Color.red);
@@ -1201,6 +1211,7 @@ public class MainMenuManager : MonoBehaviour, ILobbyCallbacks, IInRoomCallbacks,
         PlayerData data = GlobalController.Instance.characters[dropdown.value];
         sfx.PlayOneShot(Enums.Sounds.Player_Voice_Selected.GetClip(data));
         colorManager.ChangeCharacter(data);
+        //characterPanel.ChangeCharacterColor(data);
 
         Utils.GetCustomProperty(Enums.NetPlayerProperties.PlayerColor, out int index, PhotonNetwork.LocalPlayer.CustomProperties);
         if (index == 0) {
@@ -1288,6 +1299,12 @@ public class MainMenuManager : MonoBehaviour, ILobbyCallbacks, IInRoomCallbacks,
     }
 
     public void ChangeStarRequirement(int stars) {
+        starsEnabled.SetIsOnWithoutNotify(stars != -1);
+        UpdateSettingEnableStates();
+        if (stars == -1)
+            return;
+
+        //starsText.SetTextWithoutNotify(stars.ToString());
         starsText.text = stars.ToString();
     }
     public void SetStarRequirement(TMP_InputField input) {

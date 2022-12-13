@@ -23,3 +23,5 @@ MonoBehaviour:
     type: 3}
   smallOverrides: {fileID: 22100000, guid: a1854453357bb034e89ec419b0f57906, type: 2}
   largeOverrides: {fileID: 22100000, guid: 671e2adc5dbd26a45abdf5c18398a86e, type: 2}
+  SmallShirtMaterial: {fileID: 2100000, guid: 7592e5e8904ac4d4d95162046f1e2428, type: 2}
+  BigShirtMaterial: {fileID: 2100000, guid: 44b589e71dec4564d8b250647f07fb0a, type: 2}
